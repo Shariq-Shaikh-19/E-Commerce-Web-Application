@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard - ShopEasy</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="../index.html" class="logo">Shop<span>Easy</span></a>
+      <nav class="nav-actions">
+        <a href="orders.html" id="ordersLink" class="hidden">My Orders</a>
+        <a href="admin.html" id="adminLink" class="hidden">Admin</a>
+        <button id="authBtn" class="btn-link">Login</button>
+        <span id="userGreeting" class="hidden"></span>
+        <button id="logoutBtn" class="btn-link hidden">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2 class="page-title">Admin Dashboard</h2>
+    <div id="accessDenied" class="empty-state hidden">You must be logged in as an admin to view this page.</div>
+
+    <div id="adminContent" class="hidden">
+      <div class="admin-tabs">
+        <button class="tab-btn active" data-panel="products">Products</button>
+        <button class="tab-btn" data-panel="orders">Orders</button>
+      </div>
+
+      <!-- Products Panel -->
+      <section id="productsPanel">
+        <h3 style="margin-bottom:12px;">Add New Product</h3>
+        <form id="productForm" class="form-grid">
+          <input type="hidden" id="productId" />
+          <input type="text" id="pName" placeholder="Product name" required />
+          <input type="text" id="pCategory" placeholder="Category" required />
+          <input type="number" id="pPrice" placeholder="Price" step="0.01" min="0" required />
+          <input type="number" id="pStock" placeholder="Stock quantity" min="0" required />
+          <input type="url" id="pImage" placeholder="Image URL (optional)" class="full" />
+          <textarea id="pDescription" placeholder="Description" required></textarea>
+          <div class="full" style="display:flex; gap:10px;">
+            <button type="submit" class="btn-primary" id="productSubmitBtn">Add Product</button>
+            <button type="button" class="btn-secondary hidden" id="cancelEditBtn">Cancel Edit</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="productTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Orders Panel -->
+      <section id="ordersPanel" class="hidden">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Update</th></tr>
+            </thead>
+            <tbody id="orderTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2500);
+    }
+
+    async function initAdmin() {
+      if (!Auth.isLoggedIn() || !Auth.isAdmin()) {
+        document.getElementById('accessDenied').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('adminContent').classList.remove('hidden');
+      await loadProductTable();
+      await loadOrderTable();
+    }
+
+    // ---- Tabs ----
+    document.addEventListener('DOMContentLoaded', () => {
+      initAdmin();
+      document.querySelectorAll('.admin-tabs .tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.admin-tabs .tab-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const panel = btn.dataset.panel;
+          document.getElementById('productsPanel').classList.toggle('hidden', panel !== 'products');
+          document.getElementById('ordersPanel').classList.toggle('hidden', panel !== 'orders');
+        });
+      });
+    });
+
+    // ---- Products ----
+    async function loadProductTable() {
+      const tbody = document.getElementById('productTableBody');
+      tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+      try {
+        const res = await api.getProducts('?limit=100');
+        if (res.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5">No products yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = res.data
+          .map(
+            (p) => `
+          <tr>
+            <td>${p.name}</td>
+            <td>${p.category}</td>
+            <td>$${p.price.toFixed(2)}</td>
+            <td>${p.stock}</td>
+            <td>
+              <button class="btn-secondary" data-edit="${p._id}">Edit</button>
+              <button class="btn-danger" data-delete="${p._id}">Delete</button>
+            </td>
+          </tr>`
+          )
+          .join('');
+
+        tbody.querySelectorAll('button[data-edit]').forEach((btn) =>
+          btn.addEventListener('click', () => startEditProduct(res.data.find((p) => p._id === btn.dataset.edit)))
+        );
+        tbody.querySelectorAll('button[data-delete]').forEach((btn) =>
+          btn.addEventListener('click', () => deleteProductHandler(btn.dataset.delete))
+        );
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5">Failed to load: ${err.message}</td></tr>`;
+      }
+    }
+
+    function startEditProduct(product) {
+      document.getElementById('productId').value = product._id;
+      document.getElementById('pName').value = product.name;
+      document.getElementById('pCategory').value = product.category;
+      document.getElementById('pPrice').value = product.price;
+      document.getElementById('pStock').value = product.stock;
+      document.getElementById('pImage').value = product.image;
+      document.getElementById('pDescription').value = product.description;
+      document.getElementById('productSubmitBtn').textContent = 'Update Product';
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetProductForm() {
+      document.getElementById('productForm').reset();
+      document.getElementById('productId').value = '';
+      document.getElementById('productSubmitBtn').textContent = 'Add Product';
+      document.getElementById('cancelEditBtn').classList.add('hidden');
+    }
+
+    document.getElementById('cancelEditBtn').addEventListener('click', resetProductForm);
+
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('productId').value;
+      const payload = {
+        name: document.getElementById('pName').value.trim(),
+        category: document.getElementById('pCategory').value.trim(),
+        price: parseFloat(document.getElementById('pPrice').value),
+        stock: parseInt(document.getElementById('pStock').value, 10),
+        image: document.getElementById('pImage').value.trim() || undefined,
+        description: document.getElementById('pDescription').value.trim(),
+      };
+      try {
+        if (id) {
+          await api.updateProduct(id, payload);
+          showToast('Product updated');
+        } else {
+          await api.createProduct(payload);
+          showToast('Product created');
+        }
+        resetProductForm();
+        loadProductTable();
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    async function deleteProductHandler(id) {
+      if (!confirm('Delete this product?')) return;
+      try {
+        await api.deleteProduct(id);
+        showToast('Product deleted');
+        loadProductTable();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    // ---- Orders ----
+    const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+    async function loadOrderTable() {
+      const tbody = document.getElementById('orderTableBody');
+      tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+      try {
+        const res = await api.getAllOrders();
+        if (res.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">No orders yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = res.data
+          .map(
+            (o) => `
+          <tr>
+            <td>${o._id.slice(-8)}</td>
+            <td>${o.user ? o.user.name : 'N/A'}</td>
+            <td>${o.items.map((i) => `${i.name} x${i.quantity}`).join(', ')}</td>
+            <td>$${o.totalAmount.toFixed(2)}</td>
+            <td><span class="badge ${o.status}">${o.status}</span></td>
+            <td>
+              <select data-order="${o._id}">
+                ${STATUS_OPTIONS.map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+            </td>
+          </tr>`
+          )
+          .join('');
+
+        tbody.querySelectorAll('select[data-order]').forEach((sel) => {
+          sel.addEventListener('change', async () => {
+            try {
+              await api.updateOrderStatus(sel.dataset.order, sel.value);
+              showToast('Order status updated');
+              loadOrderTable();
+            } catch (err) {
+              showToast(err.message);
+            }
+          });
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6">Failed to load: ${err.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>

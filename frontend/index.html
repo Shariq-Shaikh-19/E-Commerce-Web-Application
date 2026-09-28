@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ShopEasy - Online Store</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="logo">Shop<span>Easy</span></a>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search products..." />
+        <button id="searchBtn">Search</button>
+      </div>
+      <nav class="nav-actions">
+        <a href="pages/orders.html" id="ordersLink" class="hidden">My Orders</a>
+        <a href="pages/admin.html" id="adminLink" class="hidden">Admin</a>
+        <button id="authBtn" class="btn-link">Login</button>
+        <span id="userGreeting" class="hidden"></span>
+        <button id="logoutBtn" class="btn-link hidden">Logout</button>
+        <button id="cartBtn" class="cart-btn">🛒 <span id="cartCount">0</span></button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <h1>Welcome to ShopEasy</h1>
+      <p>Quality products, fast checkout, honest prices.</p>
+    </div>
+
+    <div class="filters">
+      <label for="categoryFilter">Category:</label>
+      <select id="categoryFilter">
+        <option value="">All</option>
+      </select>
+    </div>
+
+    <div id="productGrid" class="product-grid"></div>
+    <div id="pagination" class="pagination"></div>
+  </main>
+
+  <!-- Cart Drawer -->
+  <div id="cartOverlay" class="overlay hidden"></div>
+  <aside id="cartDrawer" class="cart-drawer">
+    <div class="cart-header">
+      <h2>Your Cart</h2>
+      <button id="closeCart" class="btn-link">✕</button>
+    </div>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-footer">
+      <div class="cart-total">Total: $<span id="cartTotal">0.00</span></div>
+      <button id="checkoutBtn" class="btn-primary full-width">Checkout</button>
+    </div>
+  </aside>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="closeAuthModal">✕</button>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="register">Register</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <h3>Login</h3>
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input type="password" id="loginPassword" placeholder="Password" required />
+        <p id="loginError" class="error-msg hidden"></p>
+        <button type="submit" class="btn-primary full-width">Login</button>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <h3>Register</h3>
+        <input type="text" id="registerName" placeholder="Full Name" required />
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input type="password" id="registerPassword" placeholder="Password (min 6 chars)" required minlength="6" />
+        <p id="registerError" class="error-msg hidden"></p>
+        <button type="submit" class="btn-primary full-width">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div id="checkoutModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="closeCheckoutModal">✕</button>
+      <h3>Checkout</h3>
+      <form id="checkoutForm" class="auth-form">
+        <input type="text" id="shipFullName" placeholder="Full Name" required />
+        <input type="text" id="shipAddress" placeholder="Address" required />
+        <input type="text" id="shipCity" placeholder="City" required />
+        <input type="text" id="shipPostalCode" placeholder="Postal Code" required />
+        <input type="text" id="shipCountry" placeholder="Country" required />
+        <p id="checkoutError" class="error-msg hidden"></p>
+        <div class="cart-total">Order Total: $<span id="checkoutTotal">0.00</span></div>
+        <button type="submit" class="btn-primary full-width">Place Order</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
